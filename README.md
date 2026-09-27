@@ -67,32 +67,106 @@ Your system must hold these four invariants under any load:
 
 ## 📁 Repository Layout
 
+```text
 ticket/
-├── seller/
-│ ├── src/
-│ │ └── server.js # Production seller with CTE optimization
-│ ├── src/naive-server.js # Deliberately broken version (for demonstration)
-│ └── scripts/
-│ └── slow-db.js # Database slowdown simulator
 ├── buyer/
-│ └── src/
-│ └── load.js # Load tester with audit logging
-├── scripts/
-│ └── autopsy.js # Forensic analysis tool
-├── results/
-│ ├── audit.ndjson # Request-level audit log
-│ ├── final-status.json # Database state snapshot
-│ ├── incident-report.md # Autopsy-generated report
-│ ├── naive-run.txt # Proof naive version fails
-│ ├── fixed-run.txt # Proof fixed version passes
-│ └── ramp-test.txt # Latency scaling evidence
-├── logs/
-│ └── (AI session transcripts)
+│   ├── src/
+│   │   ├── config.js
+│   │   ├── index.js
+│   │   └── load.js
+│   ├── package.json
+│   └── package-lock.json
 ├── docs/
-│ └── BRIEF.md # Original problem statement
-├── DECISIONS.md # Architectural decisions & trade-offs
-└── README.md # This file
-
+│   └── BRIEF.md
+├── logs/
+│   ├── 04-naive-load-test.md
+│   ├── 05-fixed-seller-and-load-test.md
+│   ├── Claude-AI-Chat.md
+│   └── Codex-AI-Chat.md
+├── ppt-assets/
+│   └── architecture-diagram.png.png
+├── results/
+│   ├── audit.ndjson
+│   ├── db-kill-test.txt
+│   ├── final-status.json
+│   ├── fixed-run.txt
+│   ├── incident-report.md
+│   ├── naive-run.txt
+│   ├── ramp-test.txt
+│   └── slowdown-test.txt
+├── scripts/
+│   └── autopsy.js
+├── seller/
+│   ├── scripts/
+│   │   └── slow-db.js
+│   ├── src/
+│   │   ├── db/
+│   │   │   ├── migrator.js
+│   │   │   └── pool.js
+│   │   ├── middleware/
+│   │   │   ├── error-handler.js
+│   │   │   └── request-logger.js
+│   │   ├── modules/
+│   │   │   ├── sales/
+│   │   │   │   ├── commons/
+│   │   │   │   │   └── constants.js
+│   │   │   │   ├── handlers/
+│   │   │   │   │   ├── index.js
+│   │   │   │   │   └── reset.js
+│   │   │   │   ├── repository/
+│   │   │   │   │   └── sales.js
+│   │   │   │   ├── routes/
+│   │   │   │   │   └── index.js
+│   │   │   │   ├── schemas/
+│   │   │   │   │   ├── index.js
+│   │   │   │   │   └── reset.js
+│   │   │   │   └── services/
+│   │   │   │       ├── index.js
+│   │   │   │       └── reset.js
+│   │   │   └── tickets/
+│   │   │       ├── commons/
+│   │   │       │   └── constants.js
+│   │   │       ├── handlers/
+│   │   │       │   ├── buy.js
+│   │   │       │   ├── index.js
+│   │   │       │   └── status.js
+│   │   │       ├── repository/
+│   │   │       │   └── tickets.js
+│   │   │       ├── routes/
+│   │   │       │   └── index.js
+│   │   │       ├── schemas/
+│   │   │       │   ├── buy.js
+│   │   │       │   ├── index.js
+│   │   │       │   └── status.js
+│   │   │       └── services/
+│   │   │           ├── buy.js
+│   │   │           ├── index.js
+│   │   │           └── status.js
+│   │   ├── utils/
+│   │   │   ├── errors.js
+│   │   │   └── logger.js
+│   │   ├── app.js
+│   │   ├── config.js
+│   │   ├── naive-server.js
+│   │   └── server.js
+│   ├── Dockerfile
+│   ├── package.json
+│   └── package-lock.json
+├── tests/
+│   ├── integration/
+│   └── unit/
+├── .env.example
+├── .gitignore
+├── DECISIONS.md
+├── docker-compose.yml
+├── generate-ppt.js
+├── nginx.conf
+├── package.json
+├── package-lock.json
+├── README.md
+├── schema.sql
+└── Ticket_Stampede_Presentation.pptx
+```
 
 ---
 
