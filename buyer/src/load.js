@@ -18,6 +18,7 @@ const DUP_RATE = Number(args['dup-rate'] || 0.08);
 const PACED = args.paced === 'true';
 const DURATION_MS = Number(args.duration || 60) * 1000;
 const retryCountsByRequestId = new Map();
+const httpAgent = new http.Agent({ keepAlive: true });
 let auditStream;
 
 async function openAuditLog() {
@@ -83,6 +84,7 @@ function sendRequest(path, method, body) {
       port: u.port || 80,
       path,
       method,
+      agent: httpAgent,
       timeout: 8000,
       headers: { 'Content-Type': 'application/json', 'Content-Length': data ? Buffer.byteLength(data) : 0 },
     };
@@ -179,7 +181,6 @@ async function main() {
     while (results.length < payloads.length) await new Promise((r) => setTimeout(r, 500));
   }
   console.log('✅ All requests settled.\n');
-  await closeAuditLog();
 
   const latencies = results.filter((r) => r.ms != null).map((r) => r.ms).sort((a, b) => a - b);
   const successful = results.filter((r) => r.status === 200);

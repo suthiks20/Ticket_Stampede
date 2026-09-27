@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://ticket:ticket@localhost:5432/tickets',
-  max: 20,
+  max: 50,
   connectionTimeoutMillis: 5000,
   keepAlive: true,
 });
@@ -52,7 +52,26 @@ fastify.post('/reset', async (request, reply) => {
 });
 
 // --- 2. BUY (WITH CTE OPTIMIZATION & CRASH PREVENTION) ---
-fastify.post('/buy', async (request, reply) => {
+// --- 2. BUY (OPTIMIZED: NO REDUNDANT TRANSACTIONS + EARLY RELEASE) ---
+fastify.post('/buy', {
+  schema: {
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          ticket_number: { type: 'integer' },
+          sale_id: { type: 'string' },
+        },
+        required: ['ticket_number', 'sale_id'],
+        additionalProperties: false,
+      },
+      400: { type: 'object', properties: { error: { type: 'string' } }, required: ['error'], additionalProperties: false },
+      409: { type: 'object', properties: { error: { type: 'string' } }, required: ['error'], additionalProperties: false },
+      422: { type: 'object', properties: { error: { type: 'string' } }, required: ['error'], additionalProperties: false },
+      503: { type: 'object', properties: { error: { type: 'string' }, retry_after: { type: 'integer' } }, required: ['error', 'retry_after'], additionalProperties: false },
+    },
+  },
+}, async (request, reply) => {
   const { user_id, request_id } = request.body || {};
   if (!user_id || !request_id) {
     return reply.code(400).send({ error: 'Missing user_id or request_id' });
@@ -60,20 +79,25 @@ fastify.post('/buy', async (request, reply) => {
 
   for (let attempt = 0; attempt < 20; attempt++) {
     const client = await pool.connect();
-    // CRITICAL FIX: Prevent process crash on DB connection loss
-    client.on('error', (err) => console.error('Checked-out client error:', err.message));
+    
+    // CRITICAL FIX: Prevent process crash on DB connection loss (added listenerCount check to prevent memory leak warning)
+    if (client.listenerCount('error') === 0) {
+      client.on('error', () => {});
+    }
 
     try {
-      await client.query('BEGIN');
-
+      // FIX 1: REMOVED 'BEGIN'. The CTE is a single atomic statement, it doesn't need an explicit transaction wrapper.
+      
       const saleId = await getActiveSaleId(client);
       if (!saleId) {
-        await client.query('ROLLBACK');
+        client.release(); // Release immediately
         return reply.code(409).send({ error: 'NO_ACTIVE_SALE' });
       }
 
       // SINGLE-TRIP CTE: Idempotency check + Claim in one atomic query
-      const result = await client.query(`
+      const result = await client.query({
+        name: 'buy_cte_v1',
+        text: `
         WITH existing AS (
           SELECT ticket_number, user_id
           FROM tickets
@@ -101,15 +125,17 @@ fastify.post('/buy', async (request, reply) => {
         UNION ALL
         SELECT ticket_number, user_id, 'replay'::text AS source
         FROM existing
-      `, [saleId, request_id, user_id]);
+        `,
+        values: [saleId, request_id, user_id],
+      });
 
       if (result.rows.length > 0) {
         const ticket = result.rows[0];
         if (ticket.source === 'replay' && ticket.user_id !== user_id) {
-          await client.query('COMMIT');
+          client.release(); // Release immediately
           return reply.code(422).send({ error: 'REQUEST_ID_REUSE_BY_DIFFERENT_USER' });
         }
-        await client.query('COMMIT');
+        client.release(); // Release immediately
         return { ticket_number: ticket.ticket_number, sale_id: saleId };
       }
 
@@ -118,16 +144,20 @@ fastify.post('/buy', async (request, reply) => {
         'SELECT EXISTS(SELECT 1 FROM tickets WHERE sale_id = $1 AND user_id IS NULL) AS exists',
         [saleId]
       );
-      await client.query('COMMIT');
 
       if (!available.rows[0].exists) {
+        client.release(); // Release immediately
         return reply.code(409).send({ error: 'SOLD_OUT' });
       }
       
+      // FIX 2: MASSIVE LATENCY WIN -> Release the DB connection BEFORE waiting to retry!
+      // Previously, the connection was held hostage during the 20ms backoff, starving other requests.
+      client.release(); 
+      
       // Brief backoff before retrying if locked
       await new Promise((r) => setTimeout(r, 5 + Math.random() * 15));
+      
     } catch (e) {
-      await client.query('ROLLBACK').catch(() => {});
       // Release client with error so pool discards the broken connection
       client.release(e); 
       
@@ -135,18 +165,43 @@ fastify.post('/buy', async (request, reply) => {
         await new Promise((r) => setTimeout(r, 5));
         continue; 
       }
-      console.error('Buy error:', e.message);
       return reply.code(503).send({ error: 'BUSY', retry_after: 1 });
-    } finally {
-      // CRITICAL FIX: Always release the client back to the pool
-      client.release();
     }
   }
   return reply.code(503).send({ error: 'BUSY', retry_after: 1 });
 });
 
 // --- 3. STATUS (RETURNS TICKET_COUNT) ---
-fastify.get('/status', async (request, reply) => {
+fastify.get('/status', {
+  schema: {
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          sold: { type: 'integer' },
+          ticket_count: { type: 'integer' },
+          tickets: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                ticket_number: { type: 'integer' },
+                user_id: { type: 'string' },
+                request_id: { type: 'string' },
+              },
+              required: ['ticket_number', 'user_id', 'request_id'],
+              additionalProperties: false,
+            },
+          },
+          sale_id: { type: ['string', 'null'] },
+        },
+        required: ['sold', 'ticket_count', 'tickets', 'sale_id'],
+        additionalProperties: false,
+      },
+      503: { type: 'object', properties: { error: { type: 'string' } }, required: ['error'], additionalProperties: false },
+    },
+  },
+}, async (request, reply) => {
   try {
     const client = await pool.connect();
     try {

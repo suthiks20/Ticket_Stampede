@@ -5,7 +5,7 @@ services:
       POSTGRES_USER: ticket
       POSTGRES_PASSWORD: ticket
       POSTGRES_DB: tickets
-    command: ["postgres", "-c", "max_connections=200", "-c", "idle_in_transaction_session_timeout=5000"]
+    command: ["postgres", "-c", "max_connections=200", "-c", "idle_in_transaction_session_timeout=5000", "-c", "shared_buffers=256MB", "-c", "effective_cache_size=1GB", "-c", "fsync=on", "-c", "synchronous_commit=on"]
     ports:
       - "5432:5432"
     volumes:
