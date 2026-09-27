@@ -1,17 +1,23 @@
-// Build and configure the Fastify application without starting its listener.
-'use strict';
+// seller/src/app.js
+const fastify = require('fastify')({ logger: true });
 
-const Fastify = require('fastify');
-const errorHandler = require('./middleware/error-handler');
-const salesRoutes = require('./modules/sales/routes');
-const ticketRoutes = require('./modules/tickets/routes');
+async function buildApp() {
+  // 1. Test /reset
+  fastify.post('/reset', async (request, reply) => {
+    return { message: "Reset endpoint works!", ticket_count: request.body.ticket_count };
+  });
 
-async function createApp() {
-  const fastify = Fastify({ logger: true });
-  fastify.setErrorHandler(errorHandler);
-  await fastify.register(salesRoutes);
-  await fastify.register(ticketRoutes);
+  // 2. Test /buy
+  fastify.post('/buy', async (request, reply) => {
+    return { message: "Buy endpoint works!", ticket_number: 1 };
+  });
+
+  // 3. Test /status
+  fastify.get('/status', async (request, reply) => {
+    return { sold: 0, tickets: [] };
+  });
+
   return fastify;
 }
 
-module.exports = createApp;
+module.exports = buildApp;

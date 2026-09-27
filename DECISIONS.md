@@ -77,6 +77,9 @@ If the CTE returns nothing, an EXISTS check (no lock) distinguishes "genuinely s
 
 **A note on the naive server's artificial delay:** Node's single-threaded event loop processes an unawaited check-then-increment fast enough that it doesn't reliably race at moderate concurrency. `naive-server.js` inserts a small `await setTimeout(..., 2)` between the check and the write specifically to widen that window enough for the load test to reproduce overselling consistently — without it, the same flawed logic can appear to "work" by luck.
 
+## Additional Artifacts
+A comprehensive slide deck (`Ticket_Stampede_Presentation.pptx`) is included in the repository root. It visualizes the system architecture, the naive vs. fixed trade-offs, the ramp test latency metrics, and the forensic autopsy results from the DB-kill test.
+
 
 5. Where it breaks / known limitations
     •	Single Postgres instance is a single point of failure by design here — no replica, no managed failover. Acceptable for the scope of this brief, not for production.

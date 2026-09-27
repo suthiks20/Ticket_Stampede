@@ -56,6 +56,11 @@ Your system must hold these four invariants under any load:
                                                                   → incident-report.md)
 ```
 
+## 📊 Visual Presentation
+For a visual walkthrough of the system architecture, design choices, and test results, refer to the included presentation deck located in the root directory:
+- **`Ticket_Stampede_Presentation.pptx`** — Covers the problem statement, naive vs. fixed approaches, latency optimization metrics, and the DB-kill autopsy results.
+
+
 ### Key Components
 
 - **Seller** — Node.js + Fastify. Stateless: all sale state lives in PostgreSQL, not in application memory, so a seller restart never loses state.
@@ -208,11 +213,11 @@ Expected output:
 
  Step 4: Smoke-Test the API (New Terminal)
  bash
- # Reset with 5 tickets
-curl -X POST http://localhost:3000/reset -H "Content-Type: application/json" -d '{"ticket_count": 5}'
+ # Reset with 5 tickets (Works on Windows CMD, Mac, and Linux)
+curl -X POST http://localhost:3000/reset -H "Content-Type: application/json" -d "{\"ticket_count\": 5}"
 
 # Buy a ticket
-curl -X POST http://localhost:3000/buy -H "Content-Type: application/json" -d '{"user_id": "alice", "request_id": "r1"}'
+curl -X POST http://localhost:3000/buy -H "Content-Type: application/json" -d "{\"user_id\": \"alice\", \"request_id\": \"r1\"}"
 
 # Check status
 curl http://localhost:3000/status

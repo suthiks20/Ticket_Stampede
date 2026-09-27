@@ -1,6 +1,10 @@
-// Register sales lifecycle routes; route registration is deferred to a later phase.
-'use strict';
+// seller/src/modules/sales/routes/index.js
+const resetHandler = require('../handlers/reset');
+// If your schema file is empty or causing errors, you can temporarily remove `, { schema: resetSchema }`
+const resetSchema = require('../schemas/reset'); 
 
-async function registerSalesRoutes() {}
+async function salesRoutes(fastify) {
+  fastify.post('/reset', { schema: resetSchema }, resetHandler);
+}
 
-module.exports = registerSalesRoutes;
+module.exports = salesRoutes;
