@@ -37,16 +37,20 @@ C:\Users\suthikshan k\Desktop\ticket\buyer>node src/load.js --tickets 1000 --tot
 
 📊 RESULTS:
    Total Requests:      2000
-   Successful (200):    1071
-   Sold Out (409):      929
+   Successful (200):    1079
+   Sold Out (409):      921
    In-Doubt (unresolved):0
    Unique Tickets:      1000
-   Median latency:      651.7 ms
-   P99 latency:         1572.8 ms
+   First-time claims:   1000
+   Idempotent replays:  79
+   Replay ticket mismatches: none
+   Median latency:      512.6 ms
+   P99 latency:         1155.9 ms
 
 🔍 INVARIANT CHECKS:
-   [❌ FAIL] Invariant 2: No duplicate tickets
-   [ℹ️ INFO] Duplicate request_ids sent: 145
+   [PASS] Invariant 2: No duplicate tickets across distinct request_ids
+   [ℹ️ INFO] Duplicate request_ids sent: 135
+   [PASS] Idempotency replays returned their first-claim ticket.
 
 3. Cross-checking against /status (source of truth)...
    Server says sold: 1000 (max allowed: 1000)
@@ -67,16 +71,20 @@ C:\Users\suthikshan k\Desktop\ticket\buyer>node src/load.js --tickets 1000 --tot
 
 📊 RESULTS:
    Total Requests:      2000
-   Successful (200):    1070
-   Sold Out (409):      930
+   Successful (200):    1080
+   Sold Out (409):      920
    In-Doubt (unresolved):0
    Unique Tickets:      1000
-   Median latency:      1263.7 ms
-   P99 latency:         2995.6 ms
+   First-time claims:   1000
+   Idempotent replays:  80
+   Replay ticket mismatches: none
+   Median latency:      895.8 ms
+   P99 latency:         2014.9 ms
 
 🔍 INVARIANT CHECKS:
-   [❌ FAIL] Invariant 2: No duplicate tickets
-   [ℹ️ INFO] Duplicate request_ids sent: 138
+   [PASS] Invariant 2: No duplicate tickets across distinct request_ids
+   [ℹ️ INFO] Duplicate request_ids sent: 142
+   [PASS] Idempotency replays returned their first-claim ticket.
 
 3. Cross-checking against /status (source of truth)...
    Server says sold: 1000 (max allowed: 1000)
